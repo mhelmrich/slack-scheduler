@@ -16,12 +16,8 @@
   },
   "dependencies": {
     "@slack/client": "^4.4.0",
-<<<<<<< HEAD
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
-    "googleapis": "^27.0.0"
-  }
-=======
     "googleapis": "^27.0.0",
     "mongoose": "^5.2.7"
   },
@@ -33,5 +29,4 @@
     "url": "https://github.com/mhelmrich/slack-scheduler/issues"
   },
   "homepage": "https://github.com/mhelmrich/slack-scheduler#readme"
->>>>>>> fd3fbab00ae0b3028cf9591ccdad65c64410b3c6
 }
