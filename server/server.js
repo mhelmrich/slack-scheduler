@@ -25,7 +25,7 @@ const rtm = new RTMClient(token)
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
 rtm.start();
-const conversationId = 'DC7KL23U3';
+const conversationId = 'DC7KGLWAX';
 
 // https://developers.google.com/calendar/quickstart/nodejs
 const oauth2Client = new google.auth.OAuth2(
@@ -64,10 +64,16 @@ rtm.sendMessage('Hello there \nPlease click the following link to help me help y
   })
   .catch(console.error);
 
+  rtm.on('ready', (event) => {
+    console.log("READY")
+    console.log(event)
+  })
+
   rtm.on('message', (event) => {
     // For structure of `event`, see https://api.slack.com/events/message
-    console.log(event.text)
-    var echo = event.text;
+    console.log(event)
+    console.log('\n')
+    /*var echo = event.text;
     if(echo === 'Marco') {
       echo = 'Polo'
     }
@@ -76,7 +82,7 @@ rtm.sendMessage('Hello there \nPlease click the following link to help me help y
         // `res` contains information about the posted message
         console.log('Message sent: ', res.ts);
       })
-      .catch(console.error);
+      .catch(console.error);*/
   });
 
 const port = process.env.PORT || 1337;
