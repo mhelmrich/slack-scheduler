@@ -2,10 +2,10 @@ const { WebClient, RTMClient } = require('@slack/client');
 const {google} = require('googleapis')
 const express = require('express')
 const bodyParser = require('body-parser')
-var Task = require("./models/task.js");
-var InviteRequest = require("./models/task.js");
-var Meeting = require("./models/task.js");
-var User = require("./models/task.js");
+var Task = require("./models/task.js").Task;
+var InviteRequest = require("./models/inviteRequest.js").inviteRequest;
+var Meeting = require("./models/meeting.js").Meeting;
+var User = require("./models/user.js").User;
 
 // An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
 const token = process.env.SLACK_TOKEN;
