@@ -63,3 +63,4 @@ env.sh
 # Google credentials
 credentials.json
 dialogflow.json
+token.json
