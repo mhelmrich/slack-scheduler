@@ -11,9 +11,11 @@ var User = require("./models/task.js");
 const token = process.env.SLACK_TOKEN;
 var app = express();
 
+var routes = require("../routes/routes.js");
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-//app.use('/', routes);//makes something called routes!!!
+app.use('/', routes);//make something called routes!!!
 
 
 
@@ -23,7 +25,7 @@ const rtm = new RTMClient(token)
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
 rtm.start();
-const conversationId = 'DC7KGLWAX';
+const conversationId = 'DC7KL23U3';
 
 // https://developers.google.com/calendar/quickstart/nodejs
 const oauth2Client = new google.auth.OAuth2(
@@ -82,3 +84,4 @@ app.listen(port, () => {
   console.log(`Server listening on port ${port}!`);
 });
 
+module.exports = app;
