@@ -54,8 +54,12 @@ typings/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
-.env
+# environment variables file
+env.sh
 
 # next.js build output
 .next
+
+# Google credentials
+credentials.json
+dialogflow.json
