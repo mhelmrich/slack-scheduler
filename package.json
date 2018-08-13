@@ -1,10 +1,11 @@
 {
   "name": "scheduler",
   "version": "1.0.0",
-  "description": "",
+  "description": "A slackbot that can schedule meetings for you and your team.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node ./server/server.js"
   },
   "author": "",
   "license": "ISC",
@@ -15,8 +16,22 @@
   },
   "dependencies": {
     "@slack/client": "^4.4.0",
+<<<<<<< HEAD
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "googleapis": "^27.0.0"
   }
+=======
+    "googleapis": "^27.0.0",
+    "mongoose": "^5.2.7"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mhelmrich/slack-scheduler.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mhelmrich/slack-scheduler/issues"
+  },
+  "homepage": "https://github.com/mhelmrich/slack-scheduler#readme"
+>>>>>>> fd3fbab00ae0b3028cf9591ccdad65c64410b3c6
 }
