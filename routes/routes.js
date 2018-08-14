@@ -1,4 +1,5 @@
 var express = require('express');
+//const rtm = require('../server/server.js').Rtm;
 var bodyParser = require('body-parser');
 const {google} = require('googleapis')
 var router = express.Router();
@@ -21,12 +22,11 @@ router.get("/oauthcallback", function(req, res)
 
       console.log('--------------------------\n')
       var newUser = new User ({
-      slackId: req.query.state
-/*
+        slackId: req.query.state,
         googleCalendarAccount: {
-          accessToken: token.access_token,
-          refreshToken: token.refresh_token
-        },
+          token: token
+        }
+/*
         defaultSetting: {
           meetingLength: 30
         }

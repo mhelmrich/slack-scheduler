@@ -5,8 +5,7 @@ var Schema = mongoose.Schema;
 var UserSchema = new Schema (
 {
   googleCalendarAccount: {
-    accessToken: String,
-    refreshToken: String,
+    token: {},
     googlePlusProfile: String
   },
   defaultSetting: {
