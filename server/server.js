@@ -6,6 +6,11 @@ var mongoose = require("mongoose");
 var session = require("express-session");
 var MongoStore = require("connect-mongo")(session);
 
+const sessionId = 'slackchat-1';
+const dialogflow = require('dialogflow');
+const sessionClient = new dialogflow.SessionsClient();
+const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
+
 var Task = require("./models/task.js").Task;
 var InviteRequest = require("./models/inviteRequest.js").inviteRequest;
 var Meeting = require("./models/meeting.js").Meeting;
@@ -32,15 +37,46 @@ app.use('/', routes);//make something called routes!!!
 
 const web = new WebClient(token);
 const rtm = new RTMClient(token);
-var user = null;
-var foundUser = null;
 
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
 rtm.start();
-const conversationId = 'DC7KGLWAX';
+//var conversationId = 'DC7KGLWAX';
 
 // https://developers.google.com/calendar/quickstart/nodejs
+
+function handleIntent(calendar, intent){
+  switch (intent) {
+    case 'reminder:add':
+
+      break;
+    case 'calendar:events':
+      calendar.events.list({
+        calendarId: 'primary', // Go to setting on your calendar to get Id
+        timeMin: (new Date()).toISOString(),
+        maxResults: 10,
+        singleEvents: true,
+        orderBy: 'startTime',
+      }, (err, {data}) => {
+        if (err) return console.log('The API returned an error: ' + err);
+        console.log(data)
+        const events = data.items;
+        if (events.length) {
+          console.log('Upcoming 10 events:');
+          events.map((event, i) => {
+            const start = event.start.dateTime || event.start.date;
+            console.log(`${start} - ${event.summary}`);
+            rtm.sendMessage(event.summary, conversationId)
+          });
+        } else {
+          console.log('No upcoming events found.');
+        }
+      })
+      break;
+    default:
+
+  }
+}
 
 function makeCalendarAPICall(token) {
   const oauth2Client = new google.auth.OAuth2 (
@@ -60,6 +96,8 @@ function makeCalendarAPICall(token) {
   });
   const calendar = google.calendar({version: "v3", auth: oauth2Client});
   console.log("calendar: ", calendar);
+
+
   calendar.events.list({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     timeMin: (new Date()).toISOString(),
@@ -83,133 +121,79 @@ function makeCalendarAPICall(token) {
   })
 }
 
-
-// ask user for access to their calendar
-/*console.log('open URI:', oauth2Client.generateAuthUrl({
-  access_type: 'offline',
-  state: 'DEMIMAGIC_ID', // meta-data for DB
-  scope: [
-    'https://www.googleapis.com/auth/calendar'
-  ]
-}))*/
-
-
-
-
-
- // See: https://api.slack.com/methods/chat.postMessage
-/*web.chat.postMessage({ channel: conversationId, text: 'Hello there' })
-  .then((res) => {
-    // `res` contains information about the posted message
-    console.log('Message sent: ', res.ts);
-  })
-  .catch(console.error);*/
-
   rtm.on('message', (event) => {
     console.log("EVENT: :", event);
-    if (foundUser)
-    {
-      console.log('Message text from user: ', event.text);
-      makeCalendarAPICall(foundUser.googleCalendarAccount.token)
-    }
-    else
-    {
+    var foundUser = null;
+    var user = event.user; // possibly error
+    const conversationId = event.channel
 
-      const oauth2Client = new google.auth.OAuth2 (
-        process.env.CLIENT_ID,
-        process.env.CLIENT_SECRET,
-        process.env.REDIRECT_URL
-      )
-      rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
-      access_type: 'offline',
-      state: user, // meta-data for DB; will pass in the unique user id
-      scope: [
-        'https://www.googleapis.com/auth/calendar'
-      ]
-    }), conversationId) // channel id of the current user
-    .then((res) => {
-      // `res` contains information about the posted message
-      //console.log(res)
+    User.findOne({slackId: user}, function(error, found) {
+      console.log("found user: ", found);
+      if (error)
+      {
+        console.log("Error in find: ", error);
+      }
+      else
+      {
+        if (found)
+        {
+          //rtm.sendMessage("Welcome back!", conversationId);
+          foundUser = found;
 
-      //console.log(rtm.webClient.users.list({token: token}))
-      console.log('Message sent: ', res.ts);
-    })
-    /*      .then(() => {
-             User.find({slackId: user}, function(error, foundUser){
-               console.log("FOUND USER " + user)
-           })
-      })*/
-    .catch(console.error);
-    }
+          const request = {
+            session: sessionPath,
+            queryInput: {
+              text: {
+                text: event.text,
+                languageCode: 'en-US',
+              },
+            },
+          };
 
-    // For structure of `event`, see https://api.slack.com/events/message
-    //console.log(event)
-    //console.log('\n')
-    /*var echo = event.text;
-    if(echo === 'Marco') {
-      echo = 'Polo'
-    }
-    rtm.sendMessage(echo, conversationId)
-      .then((res) => {
-        // `res` contains information about the posted message
-        console.log('Message sent: ', res.ts);
-      })
-      .catch(console.error);*/
+          sessionClient.detectIntent(request)
+            .then(responses => {
+              const result = responses[0].queryResult;
+              console.log('Detected intent', result.parameters.fields);
+              console.log(`  Query: ${result.queryText}`);
+              console.log(`  Response: ${result.fulfillmentText}`);
+              rtm.sendMessage(result.fulfillmentText, conversationId)
+              if (result.intent) {
+                console.log(`  Intent: ${result.intent.displayName}`);
+              } else {
+                console.log(`  No intent matched.`);
+              }
+            })
+            .catch(err => {
+              console.error('ERROR:', err);
+            });
+        }
+        else
+        {
+
+          const oauth2Client = new google.auth.OAuth2 (
+            process.env.CLIENT_ID,
+            process.env.CLIENT_SECRET,
+            process.env.REDIRECT_URL
+          )
+          // bot sends out link that prompts user to authenticate their google account
+          rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            state: user,
+            scope: [
+              'https://www.googleapis.com/auth/calendar'
+            ]
+          }), conversationId)
+          .then((res) => {
+            console.log('Message sent: ', res.ts);
+          })
+          .catch(console.error);
+        }
+      }
+    });
   });
 
   rtm.on('ready', (event) => {
     console.log("READY")
-    rtm.webClient.conversations.info({token: token, channel: conversationId})//is this channel not found?
-    .then((convoInfo) => {
-      console.log(convoInfo);
-      user = convoInfo.channel.user;
-      User.findOne({slackId: user}, function(error, found) {
-        console.log("found user: ", found);
-        if (error)
-        {
-          console.log("Error in find: ", error);
-        }
-        else
-        {
-          if (found)
-          {
-            rtm.sendMessage("Welcome back!", conversationId);
-            foundUser = found;
-          }
-          else
-          {
-
-            const oauth2Client = new google.auth.OAuth2 (
-              process.env.CLIENT_ID,
-              process.env.CLIENT_SECRET,
-              process.env.REDIRECT_URL
-            )
-            // bot sends out link that prompts user to authenticate their google account
-            rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
-              access_type: 'offline',
-              state: user, // meta-data for DB; will pass in the unique user id
-              scope: [
-                'https://www.googleapis.com/auth/calendar'
-              ]
-            }), conversationId) // channel id of the current user
-            .then((res) => {
-              // `res` contains information about the posted message
-              //console.log(res)
-
-              //console.log(rtm.webClient.users.list({token: token}))
-              console.log('Message sent: ', res.ts);
-            })
-        /*      .then(() => {
-                User.find({slackId: user}, function(error, foundUser){
-                  console.log("FOUND USER " + user)
-                })
-          })*/
-            .catch(console.error);
-          }
-        }
-      });
-
-    })
   })
 
 
