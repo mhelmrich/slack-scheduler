@@ -12,7 +12,6 @@ const oauth2Client = new google.auth.OAuth2 (
 
 router.get("/oauthcallback", function(req, res)
 {
-
   oauth2Client.getToken(req.query.code, function (err, token) {
     if (err) return console.error(err.message)
     {
@@ -21,8 +20,9 @@ router.get("/oauthcallback", function(req, res)
       console.log('req.query:', req.query) // req.query.state <- meta-data
 
       console.log('--------------------------\n')
-/*
       var newUser = new User ({
+      slackId: req.query.state
+/*
         googleCalendarAccount: {
           accessToken: token.access_token,
           refreshToken: token.refresh_token
@@ -30,14 +30,24 @@ router.get("/oauthcallback", function(req, res)
         defaultSetting: {
           meetingLength: 30
         }
-       slackId: String,//FINISH ADDING THESE!!!!!!!!!!
         slackUsername: String,
         slackEmail: String,
         slackDmIds: []
       });*/
 //then save the user
+      });
+      newUser.save(function(error) {
+        if (error)
+        {
+          console.log("Rekt...");
+        }
+        else
+        {
+          console.log("SUCCESSFULLY SAVED USER WHOOOOOOOOOOOOOOOOOOOOOOO!");
+        }
+      })
+      res.send('Congratulations! You have successfully linked your Google Calendar!')
     }
-    res.send('Congratulations! You have successfully linked your Google Calendar!')
   });
 });
 

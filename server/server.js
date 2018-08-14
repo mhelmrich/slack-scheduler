@@ -36,7 +36,7 @@ const rtm = new RTMClient(token);
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
 rtm.start();
-const conversationId = 'DC774CZ33';
+const conversationId = 'DC7KL23U3';
 
 // https://developers.google.com/calendar/quickstart/nodejs
 const oauth2Client = new google.auth.OAuth2(
@@ -54,7 +54,9 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
   ]
 }))
 
-// See: https://api.slack.com/methods/chat.postMessage
+
+
+ // See: https://api.slack.com/methods/chat.postMessage
 /*web.chat.postMessage({ channel: conversationId, text: 'Hello there' })
   .then((res) => {
     // `res` contains information about the posted message
@@ -62,8 +64,120 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
   })
   .catch(console.error);*/
 
+  rtm.on('message', (event) => {
+    console.log('MESSAGE')
+    // For structure of `event`, see https://api.slack.com/events/message
+    //console.log(event)
+    //console.log('\n')
+    /*var echo = event.text;
+    if(echo === 'Marco') {
+      echo = 'Polo'
+    }
+    rtm.sendMessage(echo, conversationId)
+      .then((res) => {
+        // `res` contains information about the posted message
+        console.log('Message sent: ', res.ts);
+      })
+      .catch(console.error);*/
+  });
+
+  rtm.on('ready', (event) => {
+    console.log("READY")
+    rtm.webClient.conversations.info({token: token, channel: conversationId})//is this channel not found?
+    .then((convoInfo) => {
+      console.log(convoInfo);
+      var user = convoInfo.channel.user;
+
+      // bot sends out link that prompts user to authenticate their google account
+      rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        state: user, // meta-data for DB; will pass in the unique user id
+        scope: [
+          'https://www.googleapis.com/auth/calendar'
+        ]
+      }), conversationId) // channel id of the current user
+        .then((res) => {
+          // `res` contains information about the posted message
+          //console.log(res)
+
+          //console.log(rtm.webClient.users.list({token: token}))
+          console.log('Message sent: ', res.ts);
+        })
+        .then(() => {
+          User.find({slackId: user}, function(error, foundUser){
+            console.log("FOUND USER " + user)
+          })
+        })
+        .catch(console.error);
+    })
+  })
+
 // nested loop that prints out each user and conversation id
+  /* rtm.webClient.users.list({token: token})
+  .then((res) => {
+    // console.log(res)
+    res.members.forEach((user) => {
+      //console.log('User Id')
+      //console.log(user.id)
+      rtm.webClient.conversations.open({token: token, users: user.id})
+      .then((res2) => {
+        console.log('Conversation')
+        console.log(res2.channel.id)
+        console.log('\n')
+
+        rtm.webClient.conversations.info({token: token, channel: res2.channel.id})
+        .then((convoInfo) => {
+          console.log("Conversation Info")
+          console.log(convoInfo)
+        })
+
+        // bot sends out link that prompts user to authenticate their google account
+        rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
+          access_type: 'offline',
+          state: user.id, // meta-data for DB; will pass in the unique user id
+          scope: [
+            'https://www.googleapis.com/auth/calendar'
+          ]
+        }), conversationId) // channel id of the current user
+          .then((res) => {
+            // `res` contains information about the posted message
+            //console.log(res)
+
+            //console.log(rtm.webClient.users.list({token: token}))
+            console.log('Message sent: ', res.ts);
+          })
+          .catch(console.error);
+      })
+    }
+  )
+  })*/ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
+// See: https://api.slack.com/methods/chat.postMessage
+web.chat.postMessage({ channel: conversationId, text: 'Hello there' })
+  .then((res) => {
+    // `res` contains information about the posted message
+    console.log('Message sent: ', res.ts);
+  })
+  .catch(console.error);
+
+// nested loop that prints out each user and conversation id
   rtm.webClient.users.list({token: token})
   .then((res) => {
     console.log(res)
@@ -95,7 +209,7 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
       })
     }
   )
-  })*/
+  })
 
   rtm.on('ready', (event) => {
     console.log("READY")
@@ -105,7 +219,7 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
     // For structure of `event`, see https://api.slack.com/events/message
     console.log(event)
     console.log('\n')
-    /*var echo = event.text;
+    var echo = event.text;
     if(echo === 'Marco') {
       echo = 'Polo'
     }
@@ -114,9 +228,9 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
         // `res` contains information about the posted message
         console.log('Message sent: ', res.ts);
       })
-      .catch(console.error);*/
+      .catch(console.error);
   });
-
+*/
 const port = process.env.PORT || 1337;
 app.listen(port, () => {
   console.log(`Server listening on port ${port}!`);
