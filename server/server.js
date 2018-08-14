@@ -2,10 +2,21 @@ const { WebClient, RTMClient, Users} = require('@slack/client');
 const {google} = require('googleapis')
 const express = require('express')
 const bodyParser = require('body-parser')
+var mongoose = require("mongoose");
+var session = require("express-session");
+var MongoStore = require("connect-mongo")(session);
+
 var Task = require("./models/task.js").Task;
 var InviteRequest = require("./models/inviteRequest.js").inviteRequest;
 var Meeting = require("./models/meeting.js").Meeting;
 var User = require("./models/user.js").User;
+
+
+// MONGODB connection
+mongoose.connection.on("connected", function() {
+  console.log("Connected to MongoDb!");
+})
+mongoose.connect(process.env.MONGODB_URI);
 
 // An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
 const token = process.env.SLACK_TOKEN;
@@ -25,7 +36,7 @@ const rtm = new RTMClient(token);
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
 rtm.start();
-const conversationId = 'DC7KGLWAX';
+const conversationId = 'DC774CZ33';
 
 // https://developers.google.com/calendar/quickstart/nodejs
 const oauth2Client = new google.auth.OAuth2(
@@ -52,6 +63,7 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
   .catch(console.error);*/
 
 // nested loop that prints out each user and conversation id
+/*
   rtm.webClient.users.list({token: token})
   .then((res) => {
     console.log(res)
@@ -83,7 +95,7 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
       })
     }
   )
-  })
+  })*/
 
   rtm.on('ready', (event) => {
     console.log("READY")
