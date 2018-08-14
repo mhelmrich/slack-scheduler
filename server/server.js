@@ -38,7 +38,7 @@ var foundUser = null;
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
 rtm.start();
-const conversationId = 'DC7KL23U3';
+const conversationId = 'DC7KGLWAX';
 
 // https://developers.google.com/calendar/quickstart/nodejs
 
@@ -48,6 +48,8 @@ function makeCalendarAPICall(token) {
     process.env.CLIENT_SECRET,
     process.env.REDIRECT_URL
   )
+  console.log("Token")
+  console.log(token)
   oauth2Client.setCredentials(token);
   oauth2Client.on('tokens', (tokens) => {//access tokens should be acquired and refreshed automatically on next API call
     if (tokens.refresh_token) {
@@ -66,12 +68,14 @@ function makeCalendarAPICall(token) {
     orderBy: 'startTime',
   }, (err, {data}) => {
     if (err) return console.log('The API returned an error: ' + err);
+    console.log(data)
     const events = data.items;
     if (events.length) {
       console.log('Upcoming 10 events:');
       events.map((event, i) => {
         const start = event.start.dateTime || event.start.date;
         console.log(`${start} - ${event.summary}`);
+        rtm.sendMessage(event.summary, conversationId)
       });
     } else {
       console.log('No upcoming events found.');
@@ -106,10 +110,16 @@ function makeCalendarAPICall(token) {
     if (foundUser)
     {
       console.log('Message text from user: ', event.text);
-      makeCalendarAPICall(foundUser.token)
+      makeCalendarAPICall(foundUser.googleCalendarAccount.token)
     }
     else
     {
+
+      const oauth2Client = new google.auth.OAuth2 (
+        process.env.CLIENT_ID,
+        process.env.CLIENT_SECRET,
+        process.env.REDIRECT_URL
+      )
       rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
       access_type: 'offline',
       state: user, // meta-data for DB; will pass in the unique user id
@@ -168,6 +178,12 @@ function makeCalendarAPICall(token) {
           }
           else
           {
+
+            const oauth2Client = new google.auth.OAuth2 (
+              process.env.CLIENT_ID,
+              process.env.CLIENT_SECRET,
+              process.env.REDIRECT_URL
+            )
             // bot sends out link that prompts user to authenticate their google account
             rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
               access_type: 'offline',
