@@ -1,4 +1,4 @@
-const { WebClient, RTMClient } = require('@slack/client');
+const { WebClient, RTMClient, Users} = require('@slack/client');
 const {google} = require('googleapis')
 const express = require('express')
 const bodyParser = require('body-parser')
@@ -20,7 +20,7 @@ app.use('/', routes);//make something called routes!!!
 
 
 const web = new WebClient(token);
-const rtm = new RTMClient(token)
+const rtm = new RTMClient(token);
 
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
@@ -51,23 +51,43 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
   })
   .catch(console.error);*/
 
+// nested loop that prints out each user and conversation id
+  rtm.webClient.users.list({token: token})
+  .then((res) => {
+    console.log(res)
+    res.members.forEach((user) => {
+      console.log('User Id')
+      console.log(user.id)
+      rtm.webClient.conversations.open({token: token, users: user.id})
+      .then((res2) => {
+        console.log('Conversation ID')
+        console.log(res2.channel.id)
+        console.log('\n')
+      })
+    }
+  )
+  })
+
+  rtm.on('ready', (event) => {
+    console.log("READY")
+  })
+
+// bot sends out link that prompts user to authenticate their google account
 rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
   access_type: 'offline',
-  state: 'DEMIMAGIC_ID', // meta-data for DB
+  state: 'DEMIMAGIC_ID', // meta-data for DB; will pass in the unique user id
   scope: [
     'https://www.googleapis.com/auth/calendar'
   ]
 }), conversationId)
   .then((res) => {
     // `res` contains information about the posted message
+    console.log(res)
+
+    //console.log(rtm.webClient.users.list({token: token}))
     console.log('Message sent: ', res.ts);
   })
   .catch(console.error);
-
-  rtm.on('ready', (event) => {
-    console.log("READY")
-    console.log(event)
-  })
 
   rtm.on('message', (event) => {
     // For structure of `event`, see https://api.slack.com/events/message

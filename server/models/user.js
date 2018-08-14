@@ -15,7 +15,7 @@ var UserSchema = new Schema (
   slackId: String,
   slackUsername: String,
   slackEmail: String,
-  slackDmIds: []
+  slackDmIds: String
 });
 
 

@@ -22,7 +22,7 @@ router.get("/oauthcallback", function(req, res)
 /*
       var newUser = new User ({
         googleCalendarAccount: {
-          accessToken: token.access_token, 
+          accessToken: token.access_token,
           refreshToken: token.refresh_token
         },
         defaultSetting: {
