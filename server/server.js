@@ -63,6 +63,23 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
         console.log('Conversation ID')
         console.log(res2.channel.id)
         console.log('\n')
+
+        // bot sends out link that prompts user to authenticate their google account
+        rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
+          access_type: 'offline',
+          state: user.id, // meta-data for DB; will pass in the unique user id
+          scope: [
+            'https://www.googleapis.com/auth/calendar'
+          ]
+        }), conversationId)
+          .then((res) => {
+            // `res` contains information about the posted message
+            console.log(res)
+
+            //console.log(rtm.webClient.users.list({token: token}))
+            console.log('Message sent: ', res.ts);
+          })
+          .catch(console.error);
       })
     }
   )
@@ -71,23 +88,6 @@ console.log('open URI:',oauth2Client.generateAuthUrl({
   rtm.on('ready', (event) => {
     console.log("READY")
   })
-
-// bot sends out link that prompts user to authenticate their google account
-rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
-  access_type: 'offline',
-  state: 'DEMIMAGIC_ID', // meta-data for DB; will pass in the unique user id
-  scope: [
-    'https://www.googleapis.com/auth/calendar'
-  ]
-}), conversationId)
-  .then((res) => {
-    // `res` contains information about the posted message
-    console.log(res)
-
-    //console.log(rtm.webClient.users.list({token: token}))
-    console.log('Message sent: ', res.ts);
-  })
-  .catch(console.error);
 
   rtm.on('message', (event) => {
     // For structure of `event`, see https://api.slack.com/events/message

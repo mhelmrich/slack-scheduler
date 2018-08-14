@@ -19,6 +19,8 @@ router.get("/oauthcallback", function(req, res)
       console.log('token', token);
       console.log('\n');
       console.log('req.query:', req.query) // req.query.state <- meta-data
+
+      console.log('--------------------------\n')
 /*
       var newUser = new User ({
         googleCalendarAccount: {
