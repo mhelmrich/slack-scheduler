@@ -21,7 +21,7 @@ mongoose.connect(process.env.MONGODB_URI);
 const slackToken = process.env.SLACK_TOKEN;
 const web = new WebClient(slackToken);
 const rtm = new RTMClient(slackToken);
-let currentUser = null
+let currentUser = null;
 
 // Google OAuth
 const oauth2Client = new google.auth.OAuth2(
@@ -31,9 +31,7 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 // Dialogflow
-const sessionId = 'slackchat-1';
 const sessionClient = new dialogflow.SessionsClient();
-const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
 
 // Middleware
 app.use(bodyParser.json());
@@ -94,6 +92,10 @@ function listEvents(result, calendar, channel) {
   });
 }
 
+function scheduleMeeting(result, calendar, channel) {
+  rtm.sendMessage('Sorry, this functionality has not been implemented yet.', channel);
+}
+
 function getCalendar(token) {
   oauth2Client.setCredentials(token);
   oauth2Client.on('tokens', (tokens) => {
@@ -116,6 +118,7 @@ function handleIntent(result, token, channel) {
       listEvents(result, getCalendar(token), channel);
       break;
     case 'meeting:schedule':
+      scheduleMeeting(result, getCalendar(token), channel);
       break;
   }
 }
@@ -127,7 +130,7 @@ rtm.on('message', (event) => {
       if (user) {
         currentUser = user;
         const request = {
-          session: sessionPath,
+          session: sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, user.slackId),
           queryInput: {
             text: {
               text: event.text,
@@ -139,6 +142,7 @@ rtm.on('message', (event) => {
           .then(responses => {
             const result = responses[0].queryResult;
             console.log('--DIALOGFLOW--');
+            console.log(`  Session: ${request.session.slice(48)}`);
             console.log(`  Query: ${result.queryText}`);
             console.log(`  Intent: ${result.intent.displayName}`);
             console.log(`  Fields:\n${JSON.stringify(result.parameters.fields)}`);
