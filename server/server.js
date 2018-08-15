@@ -37,6 +37,7 @@ app.use('/', routes);//make something called routes!!!
 
 const web = new WebClient(token);
 const rtm = new RTMClient(token);
+console.log(rtm.webClient.reminders)
 
 // This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
 
@@ -48,8 +49,8 @@ rtm.start();
 function handleIntent(calendar, intent, conversationId){
   switch (intent.intent.displayName) {
     case 'reminder:add':
-      console.log(intent)
-      console.log(intent.parameters.fields)
+      //console.log(intent)
+      //console.log(intent.parameters.fields)
 
       calendar.events.insert({
         calendarId: 'primary', // Go to setting on your calendar to get Id
@@ -68,17 +69,26 @@ function handleIntent(calendar, intent, conversationId){
         }
       }, (err, {data}) => {
         if (err) return console.log('The API returned an error: ' + err);
-        console.log(data)
+        //console.log(data)
       })
 
-      rtm.webClient.reminders.add({token:token, text: intent.parameters.fields.subject.stringValue, time: "in 1 minute"})
-      console.log(rtm.webClient.reminders.list({token:token}))
+      console.log(token)
+      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, time: "in 1 minute"})
+      .catch(err => console.log(err))
+      rtm.webClient.reminders.list({token:process.env.BOT_TOKEN})
+      .then((res) => console.log(res))
+      .catch(err => console.log())
+      /*rtm.webClient.reminders.list({token:token})
+      .then((res) => {
+        console.log("Here are you reminders:")
+        console.log(res)
+      })*/
       return;
       break;
     case 'meeting:schedule':
       break;
     case 'calendar:events':
-    console.log('CALLED')
+    //console.log('CALLED')
       calendar.events.list({
         calendarId: 'primary', // Go to setting on your calendar to get Id
         timeMin: (new Date()).toISOString(),
@@ -88,8 +98,8 @@ function handleIntent(calendar, intent, conversationId){
       }, (err, res) => {
         if (err) return console.log('The API returned an error: ' + err);
         const events = res.data.items;
-        console.log('=======================================')
-        console.log(events)
+        //console.log('=======================================')
+        //console.log(events)
         if (events.length) {
           var messageString = 'Upcoming 10 events: '
           console.log('Upcoming 10 events:');
@@ -115,8 +125,8 @@ function makeCalendarAPICall(token, intent, conversationId) {
     process.env.CLIENT_SECRET,
     process.env.REDIRECT_URL
   )
-  console.log("Token")
-  console.log(token)
+  //console.log("Token")
+  //console.log(token)
   oauth2Client.setCredentials(token);
   oauth2Client.on('tokens', (tokens) => {//access tokens should be acquired and refreshed automatically on next API call
     if (tokens.refresh_token) {
@@ -126,13 +136,13 @@ function makeCalendarAPICall(token, intent, conversationId) {
     console.log(tokens.access_token);
   });
   const calendar = google.calendar({version: "v3", auth: oauth2Client});
-  console.log("calendar: ", calendar);
+  //console.log("calendar: ", calendar);
 
   handleIntent(calendar, intent, conversationId);
 }
 
   rtm.on('message', (event) => {
-    console.log("EVENT: :", event);
+    //console.log("EVENT: :", event);
     var foundUser = null;
     var user = event.user; // possibly error
     const conversationId = event.channel
@@ -159,7 +169,7 @@ function makeCalendarAPICall(token, intent, conversationId) {
               },
             },
           };
-          
+
           sessionClient.detectIntent(request)
             .then(responses => {
               const result = responses[0].queryResult;
