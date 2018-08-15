@@ -1,11 +1,8 @@
 const mongoose = require("mongoose");
-var Schema = mongoose.Schema;
-
-
+const Schema = mongoose.Schema;
 
 /*
-var MeetingSchema = new Schema (
-{
+const meetingSchema = new Schema({
   day: {
     type: String,
     required: true
@@ -27,8 +24,7 @@ var MeetingSchema = new Schema (
   requesterId: String
 });
 
+const Meeting = mongoose.model("Meeting", meetingSchema);
 
-var Meeting = mongoose.model("Meeting", MeetingSchema);
-
-
-module.exports = {Meeting: Meeting};*/
+module.exports = Meeting;
+*/

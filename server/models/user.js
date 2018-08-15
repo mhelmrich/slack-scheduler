@@ -1,9 +1,7 @@
 const mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
-
-var UserSchema = new Schema (
-{
+const userSchema = new Schema({
   googleCalendarAccount: {
     token: {},
     googlePlusProfile: String
@@ -17,8 +15,6 @@ var UserSchema = new Schema (
   slackDmIds: String
 });
 
+const User = mongoose.model("User", userSchema);
 
-var User = mongoose.model("User", UserSchema);
-
-
-module.exports = {User: User}
+module.exports = User;

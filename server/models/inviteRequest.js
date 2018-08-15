@@ -1,17 +1,15 @@
 const mongoose = require("mongoose");
-var Schema = mongoose.Schema;
+const Schema = mongoose.Schema;
 
 /*
-var InviteRequestSchema = new Schema (
-{
+const inviteRequestSchema = new Schema({
   eventId: String,
   InviteeId: String,
   RequesterId: String,
   status: String
 });
 
+const InviteRequest = mongoose.model("InviteRequest", inviteRequestSchema);
 
-var InviteRequest = mongoose.model("InviteRequest", InviteRequestSchema);
-
-
-module.exports = {Task: Task, Meeting: Meeting, User: User, InviteRequest: InviteRequest};*/
+module.exports = InviteRequest;
+*/
