@@ -70,6 +70,9 @@ function handleIntent(calendar, intent, conversationId){
         if (err) return console.log('The API returned an error: ' + err);
         console.log(data)
       })
+
+      rtm.webClient.reminders.add({token:token, text: intent.parameters.fields.subject.stringValue, time: "in 1 minute"})
+      console.log(rtm.webClient.reminders.list({token:token}))
       return;
       break;
     case 'meeting:schedule':
@@ -156,7 +159,7 @@ function makeCalendarAPICall(token, intent, conversationId) {
               },
             },
           };
-
+          
           sessionClient.detectIntent(request)
             .then(responses => {
               const result = responses[0].queryResult;
