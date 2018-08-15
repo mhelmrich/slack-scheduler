@@ -1,56 +1,50 @@
-const { WebClient, RTMClient, Users} = require('@slack/client');
-const {google} = require('googleapis')
-const express = require('express')
-const bodyParser = require('body-parser')
-var mongoose = require("mongoose");
-var session = require("express-session");
-var MongoStore = require("connect-mongo")(session);
-
-const sessionId = 'slackchat-1';
+const {WebClient, RTMClient, Users} = require('@slack/client');
+const {google} = require('googleapis');
+const app = require('express')();
+const bodyParser = require('body-parser');
+const mongoose = require("mongoose");
+const session = require("express-session");
+const MongoStore = require("connect-mongo")(session);
 const dialogflow = require('dialogflow');
+
+const User = require("./models/user.js");
+const Task = require("./models/task.js");
+//const InviteRequest = require("./models/inviteRequest.js").inviteRequest;
+//const Meeting = require("./models/meeting.js").Meeting;
+const routes = require("./routes/routes.js");
+
+// MongoDB
+mongoose.connection.on("connected", () => console.log("Connected to MongoDB!"));
+mongoose.connect(process.env.MONGODB_URI);
+
+// Slack
+const slackToken = process.env.SLACK_TOKEN;
+const web = new WebClient(slackToken);
+const rtm = new RTMClient(slackToken);
+
+// Google OAuth
+const oauth2Client = new google.auth.OAuth2(
+  process.env.CLIENT_ID,
+  process.env.CLIENT_SECRET,
+  process.env.REDIRECT_URL
+);
+
+// Dialogflow
+const sessionId = 'slackchat-1';
 const sessionClient = new dialogflow.SessionsClient();
 const sessionPath = sessionClient.sessionPath(process.env.DIALOGFLOW_PROJECT_ID, sessionId);
 
-var Task = require("./models/task.js").Task;
-var InviteRequest = require("./models/inviteRequest.js").inviteRequest;
-var Meeting = require("./models/meeting.js").Meeting;
-var User = require("./models/user.js").User;
-
-
-// MONGODB connection
-mongoose.connection.on("connected", function() {
-  console.log("Connected to MongoDb!");
-})
-mongoose.connect(process.env.MONGODB_URI);
-
-// An access token (from your Slack app or custom integration - xoxp, xoxb, or xoxa)
-const token = process.env.SLACK_TOKEN;
-var app = express();
-
-var routes = require("../routes/routes.js");
-
+// Middleware
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use('/', routes);//make something called routes!!!
-
-
-
-const web = new WebClient(token);
-const rtm = new RTMClient(token);
-
-// This argument can be a channel ID, a DM ID, a MPDM ID, or a group ID
+app.use(bodyParser.urlencoded({extended: false}));
+app.use('/', routes(oauth2Client));
 
 rtm.start();
-//var conversationId = 'DC7KGLWAX';
-
-// https://developers.google.com/calendar/quickstart/nodejs
+rtm.on('ready', (event) => console.log("Slack RTM ready!"));
 
 function handleIntent(calendar, intent, conversationId){
   switch (intent.intent.displayName) {
     case 'reminder:add':
-      console.log(intent)
-      console.log(intent.parameters.fields)
-
       calendar.events.insert({
         calendarId: 'primary', // Go to setting on your calendar to get Id
         'resource': {
@@ -64,21 +58,19 @@ function handleIntent(calendar, intent, conversationId){
           'end': {
             'dateTime': intent.parameters.fields.date.stringValue,
             'timeZone': 'America/Los_Angeles'
-          },
+          }
         }
       }, (err, {data}) => {
         if (err) return console.log('The API returned an error: ' + err);
-        console.log(data)
-      })
-
-      rtm.webClient.reminders.add({token:token, text: intent.parameters.fields.subject.stringValue, time: "in 1 minute"})
-      console.log(rtm.webClient.reminders.list({token:token}))
-      return;
-      break;
-    case 'meeting:schedule':
+        console.log(data);
+      });
+      rtm.webClient.reminders.add({
+        token: slackToken,
+        text: intent.parameters.fields.subject.stringValue,
+        time: "in 1 minute"});
+      console.log(rtm.webClient.reminders.list({token: slackToken}))
       break;
     case 'calendar:events':
-    console.log('CALLED')
       calendar.events.list({
         calendarId: 'primary', // Go to setting on your calendar to get Id
         timeMin: (new Date()).toISOString(),
@@ -86,39 +78,24 @@ function handleIntent(calendar, intent, conversationId){
         singleEvents: true,
         orderBy: 'startTime',
       }, (err, res) => {
-        if (err) return console.log('The API returned an error: ' + err);
+        if (err) return console.log('Error with calendar API: ' + err);
         const events = res.data.items;
-        console.log('=======================================')
-        console.log(events)
         if (events.length) {
-          var messageString = 'Upcoming 10 events: '
-          console.log('Upcoming 10 events:');
+          let message = 'Upcoming 10 events: ';
           events.map((event) => {
             const start = event.start.dateTime || event.start.date;
-            console.log(`${start} - ${event.summary}`);
-            messageString += '\n'+ start + ' - ' + event.summary
+            message += '\n'+ start + ' - ' + event.summary;
           });
-          rtm.sendMessage(messageString, conversationId)
-        } else {
-          console.log('No upcoming events found.');
-        }
-      })
-      break;
-    default:
-
+          rtm.sendMessage(message, conversationId);
+        } else rtm.sendMessage("You don't have any upcoming events.", conversationId);
+      });
   }
 }
 
 function makeCalendarAPICall(token, intent, conversationId) {
-  const oauth2Client = new google.auth.OAuth2 (
-    process.env.CLIENT_ID,
-    process.env.CLIENT_SECRET,
-    process.env.REDIRECT_URL
-  )
-  console.log("Token")
-  console.log(token)
   oauth2Client.setCredentials(token);
-  oauth2Client.on('tokens', (tokens) => {//access tokens should be acquired and refreshed automatically on next API call
+  oauth2Client.on('tokens', (tokens) => {
+    //access tokens should be acquired and refreshed automatically on next API call
     if (tokens.refresh_token) {
       // store the refresh_token in my database!
       console.log(tokens.refresh_token);
@@ -126,91 +103,49 @@ function makeCalendarAPICall(token, intent, conversationId) {
     console.log(tokens.access_token);
   });
   const calendar = google.calendar({version: "v3", auth: oauth2Client});
-  console.log("calendar: ", calendar);
-
   handleIntent(calendar, intent, conversationId);
 }
 
-  rtm.on('message', (event) => {
-    console.log("EVENT: :", event);
-    var foundUser = null;
-    var user = event.user; // possibly error
-    const conversationId = event.channel
-
-    User.findOne({slackId: user}, function(error, found) {
-      console.log("found user: ", found);
-      if (error)
-      {
-        console.log("Error in find: ", error);
-      }
-      else
-      {
-        if (found)
-        {
-          //rtm.sendMessage("Welcome back!", conversationId);
-          foundUser = found;
-
-          const request = {
-            session: sessionPath,
-            queryInput: {
-              text: {
-                text: event.text,
-                languageCode: 'en-US',
-              },
-            },
-          };
-          
-          sessionClient.detectIntent(request)
-            .then(responses => {
-              const result = responses[0].queryResult;
-              console.log('Detected intent', result.parameters.fields);
-              console.log(`  Query: ${result.queryText}`);
-              console.log(`  Response: ${result.fulfillmentText}`);
-              rtm.sendMessage(result.fulfillmentText, conversationId)
-              if (result.intent) {
-                console.log(`  Intent: ${result.intent.displayName}`);
-                makeCalendarAPICall(found.googleCalendarAccount.token, result, conversationId)
-              } else {
-                console.log(`  No intent matched.`);
-              }
-            })
-            .catch(err => {
-              console.error('ERROR:', err);
-            });
-        }
-        else
-        {
-
-          const oauth2Client = new google.auth.OAuth2 (
-            process.env.CLIENT_ID,
-            process.env.CLIENT_SECRET,
-            process.env.REDIRECT_URL
-          )
-          // bot sends out link that prompts user to authenticate their google account
-          rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
-            access_type: 'offline',
-            state: user,
-            scope: [
-              'https://www.googleapis.com/auth/calendar'
-            ]
-          }), conversationId)
-          .then((res) => {
-            console.log('Message sent: ', res.ts);
-          })
-          .catch(console.error);
-        }
-      }
-    });
-  });
-
-  rtm.on('ready', (event) => {
-    console.log("READY")
-  })
-
-
-const port = process.env.PORT || 1337;
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}!`);
+rtm.on('message', (event) => {
+  console.log('RTM received a message');
+  User.findOne({slackId: event.user})
+  .then((user) => {
+    if (user) {
+      const request = {
+        session: sessionPath,
+        queryInput: {
+          text: {
+            text: event.text,
+            languageCode: 'en-US',
+          },
+        },
+      };
+      sessionClient.detectIntent(request)
+        .then(responses => {
+          const result = responses[0].queryResult;
+          console.log('--DIALOGFLOW--');
+          console.log(`  Query: ${result.queryText}`);
+          console.log(`  Intent: ${result.intent.displayName}`);
+          //console.log(`  Fields:\n${JSON.stringify(result.parameters.fields)}`);
+          console.log(`  Response: ${result.fulfillmentText}`);
+          console.log('--------------');
+          rtm.sendMessage(result.fulfillmentText, event.channel)
+          if (result.intent) makeCalendarAPICall(user.googleCalendarAccount.token, result, event.channel);
+        })
+        .catch(err => console.error('Error detecting intent:', err));
+    } else {
+      //slack authentication link for google calendar
+      const url = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        state: user,
+        scope: ['https://www.googleapis.com/auth/calendar']
+      });
+      rtm.sendMessage(`Hello there!\nPlease click this link so I can assist you!\n${url}`, event.channel)
+      .then(() => console.log('User not authenticated, link sent.'))
+      .catch((err) => console.log(err));
+    }
+  }).catch((err) => console.log('Error looking up user:', err));
 });
 
-module.exports = app;
+const port = process.env.PORT || 1337;
+app.listen(port, () => console.log(`Server listening on port ${port}!`));
