@@ -45,7 +45,7 @@ rtm.start();
 
 // https://developers.google.com/calendar/quickstart/nodejs
 
-function handleIntent(calendar, intent){
+function handleIntent(calendar, intent, conversationId){
   switch (intent.intent.displayName) {
     case 'reminder:add':
       console.log(intent)
@@ -82,13 +82,15 @@ function handleIntent(calendar, intent){
         maxResults: 10,
         singleEvents: true,
         orderBy: 'startTime',
-      }, (err, {data}) => {
+      }, (err, res) => {
         if (err) return console.log('The API returned an error: ' + err);
-        const events = data.items;
+        const events = res.data.items;
+        console.log('=======================================')
+        console.log(events)
         if (events.length) {
           var messageString = 'Upcoming 10 events: '
           console.log('Upcoming 10 events:');
-          events.map((event, i) => {
+          events.map((event) => {
             const start = event.start.dateTime || event.start.date;
             console.log(`${start} - ${event.summary}`);
             messageString += '\n'+ start + ' - ' + event.summary
@@ -104,7 +106,7 @@ function handleIntent(calendar, intent){
   }
 }
 
-function makeCalendarAPICall(token, intent) {
+function makeCalendarAPICall(token, intent, conversationId) {
   const oauth2Client = new google.auth.OAuth2 (
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
@@ -123,7 +125,7 @@ function makeCalendarAPICall(token, intent) {
   const calendar = google.calendar({version: "v3", auth: oauth2Client});
   console.log("calendar: ", calendar);
 
-  handleIntent(calendar, intent);
+  handleIntent(calendar, intent, conversationId);
 }
 
   rtm.on('message', (event) => {
@@ -164,7 +166,7 @@ function makeCalendarAPICall(token, intent) {
               rtm.sendMessage(result.fulfillmentText, conversationId)
               if (result.intent) {
                 console.log(`  Intent: ${result.intent.displayName}`);
-                makeCalendarAPICall(found.googleCalendarAccount.token, result)
+                makeCalendarAPICall(found.googleCalendarAccount.token, result, conversationId)
               } else {
                 console.log(`  No intent matched.`);
               }
