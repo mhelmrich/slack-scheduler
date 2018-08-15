@@ -21,6 +21,7 @@ mongoose.connect(process.env.MONGODB_URI);
 const slackToken = process.env.SLACK_TOKEN;
 const web = new WebClient(slackToken);
 const rtm = new RTMClient(slackToken);
+let currentUser = null
 
 // Google OAuth
 const oauth2Client = new google.auth.OAuth2(
@@ -65,7 +66,8 @@ function handleIntent(calendar, intent, conversationId){
         //console.log(data)
       })
 
-      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, time: "in 1 minute"})
+      console.log(intent.parameters.fields)
+      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, user: currentUser.slackId, time: "in 1 minute" })
       .catch(err => console.log(err))
       rtm.webClient.reminders.list({token:process.env.BOT_TOKEN})
       .then((res) => console.log(res))
@@ -145,6 +147,7 @@ function makeCalendarAPICall(token, intent, conversationId) {
         {
           //rtm.sendMessage("Welcome back!", conversationId);
           foundUser = found;
+          currentUser = found;
 
           const request = {
             session: sessionPath,
