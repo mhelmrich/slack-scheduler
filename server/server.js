@@ -203,7 +203,7 @@ function makeCalendarAPICall(token, intent, conversationId) {
                   channel: conversationId,
                   as_user: true,
                   text: "Create task to " + result.parameters.fields.subject.stringValue + " " +  result.queryText + "?",
-                  response_url: "", //, webhook
+                  response_url: "https://4992576b.ngrok.io/confirmationButton", //, webhook
                   attachments: [
                   {
                     fallback: "You are unable schedule a reminder",
@@ -283,7 +283,8 @@ function makeCalendarAPICall(token, intent, conversationId) {
     }
   });
 
-  app.post('/slack', (req, res) => {
+  app.post('/confirmationButton', (req, res) => {
+    console.log("In the post!");
     console.log(">>>>PAYLOAD>>>>", JSON.parse(req.body.payload));
     res.end();
   });
