@@ -46,11 +46,36 @@ rtm.start();
 // https://developers.google.com/calendar/quickstart/nodejs
 
 function handleIntent(calendar, intent){
-  switch (intent) {
+  switch (intent.intent.displayName) {
     case 'reminder:add':
+      console.log(intent)
+      console.log(intent.parameters.fields)
 
+      calendar.events.insert({
+        calendarId: 'primary', // Go to setting on your calendar to get Id
+        'resource': {
+          'summary': intent.parameters.fields.subject.stringValue,
+          'location': '800 Howard St., San Francisco, CA 94103',
+          'description': intent.parameters.fields.subject.stringValue,
+          'start': {
+            'dateTime': intent.parameters.fields.date.stringValue,
+            'timeZone': 'America/Los_Angeles'
+          },
+          'end': {
+            'dateTime': intent.parameters.fields.date.stringValue,
+            'timeZone': 'America/Los_Angeles'
+          },
+        }
+      }, (err, {data}) => {
+        if (err) return console.log('The API returned an error: ' + err);
+        console.log(data)
+      })
+      return;
+      break;
+    case 'meeting:schedule':
       break;
     case 'calendar:events':
+    console.log('CALLED')
       calendar.events.list({
         calendarId: 'primary', // Go to setting on your calendar to get Id
         timeMin: (new Date()).toISOString(),
@@ -59,15 +84,16 @@ function handleIntent(calendar, intent){
         orderBy: 'startTime',
       }, (err, {data}) => {
         if (err) return console.log('The API returned an error: ' + err);
-        console.log(data)
         const events = data.items;
         if (events.length) {
+          var messageString = 'Upcoming 10 events: '
           console.log('Upcoming 10 events:');
           events.map((event, i) => {
             const start = event.start.dateTime || event.start.date;
             console.log(`${start} - ${event.summary}`);
-            rtm.sendMessage(event.summary, conversationId)
+            messageString += '\n'+ start + ' - ' + event.summary
           });
+          rtm.sendMessage(messageString, conversationId)
         } else {
           console.log('No upcoming events found.');
         }
@@ -78,7 +104,7 @@ function handleIntent(calendar, intent){
   }
 }
 
-function makeCalendarAPICall(token) {
+function makeCalendarAPICall(token, intent) {
   const oauth2Client = new google.auth.OAuth2 (
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
@@ -97,28 +123,7 @@ function makeCalendarAPICall(token) {
   const calendar = google.calendar({version: "v3", auth: oauth2Client});
   console.log("calendar: ", calendar);
 
-
-  calendar.events.list({
-    calendarId: 'primary', // Go to setting on your calendar to get Id
-    timeMin: (new Date()).toISOString(),
-    maxResults: 10,
-    singleEvents: true,
-    orderBy: 'startTime',
-  }, (err, {data}) => {
-    if (err) return console.log('The API returned an error: ' + err);
-    console.log(data)
-    const events = data.items;
-    if (events.length) {
-      console.log('Upcoming 10 events:');
-      events.map((event, i) => {
-        const start = event.start.dateTime || event.start.date;
-        console.log(`${start} - ${event.summary}`);
-        rtm.sendMessage(event.summary, conversationId)
-      });
-    } else {
-      console.log('No upcoming events found.');
-    }
-  })
+  handleIntent(calendar, intent);
 }
 
   rtm.on('message', (event) => {
@@ -159,6 +164,7 @@ function makeCalendarAPICall(token) {
               rtm.sendMessage(result.fulfillmentText, conversationId)
               if (result.intent) {
                 console.log(`  Intent: ${result.intent.displayName}`);
+                makeCalendarAPICall(found.googleCalendarAccount.token, result)
               } else {
                 console.log(`  No intent matched.`);
               }
