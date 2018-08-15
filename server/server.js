@@ -68,7 +68,7 @@ function handleIntent(calendar, intent, conversationId){
 
       console.log(intent.parameters.fields)
       // change time to whenever time
-      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, user: currentUser.slackId, time: intent.parameters.fields.date.stringValue })
+      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, user: currentUser.slackId, time: "in 1 minute"})
       .catch(err => console.log(err))
       rtm.webClient.reminders.list({token:process.env.BOT_TOKEN})
       .then((res) => console.log(res))
@@ -80,7 +80,33 @@ function handleIntent(calendar, intent, conversationId){
       })*/
       return;
       break;
-    case 'meeting:schedule':
+    case 'meeting:schedule'://
+      calendar.events.insert({
+        calendarId: 'primary',
+        'resource': {
+          'summary': intent.parameters.fields.subject.stringValue,
+          'location': '800 Howard St., San Francisco, CA 94103',
+          'description': intent.parameters.fields.subject.stringValue,
+          'start': {
+            'dateTime': intent.parameters.fields.date.stringValue,
+            'timeZone': 'America/Los_Angeles'
+          },
+          'end': {
+            'dateTime': intent.parameters.fields.date.stringValue,
+            'timeZone': 'America/Los_Angeles'
+          },
+          'attendees': [
+            {'email': 'someonesemail'},
+            {'email': 'someonesemail'}]
+        }
+      }, (err, {data}) => {
+        if (err) return console.log('The API returned an error: ' + err);
+        //console.log(data)
+      })
+
+
+
+      
       break;
     case 'calendar:events':
     //console.log('CALLED')
@@ -171,6 +197,57 @@ function makeCalendarAPICall(token, intent, conversationId) {
                 rtm.sendMessage(result.fulfillmentText, conversationId)
                 if (result.intent) {
                   console.log(`  Intent: ${result.intent.displayName}`);
+
+                //To ask permission to add a task to calendar
+                web.chat.postMessage({
+                  channel: conversationId,
+                  as_user: true,
+                  text: "Create task to " + result.parameters.fields.subject.stringValue + " " +  result.queryText + "?",
+                  response_url: "", //, webhook
+                  attachments: [
+                  {
+                    fallback: "You are unable schedule a reminder",
+                    callback_id: "schedule_reminder",
+                    color: "#3AA3E3",
+                    attachment_type: "default",
+                    actions: [
+                    {
+                      name: "decision",
+                      text: "Yes",
+                      type: "button",
+                      style: "primary",
+                      value: "yes"//,
+ /*                     confirm: {
+                        title: "Are you sure?",
+                        text: "",
+                        ok_text: "Yes",
+                        dismiss_text: "No"
+                      }*/
+                    },
+                    {
+                      name: "decision",
+                      text: "No",
+                      style: "danger",
+                      type: "button",
+                      value: "no"//,
+ /*                     confirm: {
+                        title: "Are you sure?",
+                        text: "",
+                        ok_text: "Yes",
+                        dismiss_text: "No"
+                      }*/
+                    }]
+                  }]
+                })
+                .then((res) => {
+                  // `res` contains information about the posted message
+                  console.log('Message sent: ', res.ts)
+                })
+                .catch(console.error)
+ 
+
+
+
                   makeCalendarAPICall(found.googleCalendarAccount.token, result, conversationId)
                 } else {
                   console.log(`  No intent matched.`);
@@ -205,6 +282,15 @@ function makeCalendarAPICall(token, intent, conversationId) {
       });
     }
   });
+
+  app.post('/slack', (req, res) => {
+    console.log(">>>>PAYLOAD>>>>", JSON.parse(req.body.payload));
+    res.end();
+  });
+
+
+
+
 
   rtm.on('ready', (event) => {
     console.log("READY")
