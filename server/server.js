@@ -67,7 +67,8 @@ function handleIntent(calendar, intent, conversationId){
       })
 
       console.log(intent.parameters.fields)
-      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, user: currentUser.slackId, time: "in 1 minute" })
+      // change time to whenever time
+      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, user: currentUser.slackId, time: intent.parameters.fields.date.stringValue })
       .catch(err => console.log(err))
       rtm.webClient.reminders.list({token:process.env.BOT_TOKEN})
       .then((res) => console.log(res))
@@ -131,75 +132,78 @@ function makeCalendarAPICall(token, intent, conversationId) {
 
   rtm.on('message', (event) => {
     //console.log("EVENT: :", event);
-    var foundUser = null;
-    var user = event.user; // possibly error
-    const conversationId = event.channel
 
-    User.findOne({slackId: user}, function(error, found) {
-      console.log("found user: ", found);
-      if (error)
-      {
-        console.log("Error in find: ", error);
-      }
-      else
-      {
-        if (found)
+    if(event.bot_id !== 'BC8N825N3'){
+      var foundUser = null;
+      var user = event.user; // possibly error
+      const conversationId = event.channel
+
+      User.findOne({slackId: user}, function(error, found) {
+        console.log("found user: ", found);
+        if (error)
         {
-          //rtm.sendMessage("Welcome back!", conversationId);
-          foundUser = found;
-          currentUser = found;
-
-          const request = {
-            session: sessionPath,
-            queryInput: {
-              text: {
-                text: event.text,
-                languageCode: 'en-US',
-              },
-            },
-          };
-
-          sessionClient.detectIntent(request)
-            .then(responses => {
-              const result = responses[0].queryResult;
-              console.log('Detected intent', result.parameters.fields);
-              console.log(`  Query: ${result.queryText}`);
-              console.log(`  Response: ${result.fulfillmentText}`);
-              rtm.sendMessage(result.fulfillmentText, conversationId)
-              if (result.intent) {
-                console.log(`  Intent: ${result.intent.displayName}`);
-                makeCalendarAPICall(found.googleCalendarAccount.token, result, conversationId)
-              } else {
-                console.log(`  No intent matched.`);
-              }
-            })
-            .catch(err => {
-              console.error('ERROR:', err);
-            });
+          console.log("Error in find: ", error);
         }
         else
         {
+          if (found)
+          {
+            //rtm.sendMessage("Welcome back!", conversationId);
+            foundUser = found;
+            currentUser = found;
 
-          const oauth2Client = new google.auth.OAuth2 (
-            process.env.CLIENT_ID,
-            process.env.CLIENT_SECRET,
-            process.env.REDIRECT_URL
-          )
-          // bot sends out link that prompts user to authenticate their google account
-          rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
-            access_type: 'offline',
-            state: user,
-            scope: [
-              'https://www.googleapis.com/auth/calendar'
-            ]
-          }), conversationId)
-          .then((res) => {
-            console.log('Message sent: ', res.ts);
-          })
-          .catch(console.error);
+            const request = {
+              session: sessionPath,
+              queryInput: {
+                text: {
+                  text: event.text,
+                  languageCode: 'en-US',
+                },
+              },
+            };
+
+            sessionClient.detectIntent(request)
+              .then(responses => {
+                const result = responses[0].queryResult;
+                console.log('Detected intent', result.parameters.fields);
+                console.log(`  Query: ${result.queryText}`);
+                console.log(`  Response: ${result.fulfillmentText}`);
+                rtm.sendMessage(result.fulfillmentText, conversationId)
+                if (result.intent) {
+                  console.log(`  Intent: ${result.intent.displayName}`);
+                  makeCalendarAPICall(found.googleCalendarAccount.token, result, conversationId)
+                } else {
+                  console.log(`  No intent matched.`);
+                }
+              })
+              .catch(err => {
+                console.error('ERROR:', err);
+              });
+          }
+          else
+          {
+            console.log(event)
+            const oauth2Client = new google.auth.OAuth2 (
+              process.env.CLIENT_ID,
+              process.env.CLIENT_SECRET,
+              process.env.REDIRECT_URL
+            )
+            // bot sends out link that prompts user to authenticate their google account
+            rtm.sendMessage('Hello there \nPlease click the following link to help me help you!\n' + oauth2Client.generateAuthUrl({
+              access_type: 'offline',
+              state: user,
+              scope: [
+                'https://www.googleapis.com/auth/calendar'
+              ]
+            }), conversationId)
+            .then((res) => {
+              console.log('Message sent: ', res.ts);
+            })
+            .catch(console.error);
+          }
         }
-      }
-    });
+      });
+    }
   });
 
   rtm.on('ready', (event) => {
