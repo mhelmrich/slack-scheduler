@@ -8,7 +8,7 @@ const userSchema = new Schema({
   },
   slackId: String,
   slackUsername: String,
-  slackEmail: String,
+  email: String,
   slackDmIds: String
 });
 

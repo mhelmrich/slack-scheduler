@@ -120,7 +120,7 @@ function scheduleMeeting(result, calendar, channel, activeUser) {
         const url = oauth2Client.generateAuthUrl({
           access_type: 'offline',
           state: user,
-          scope: ['https://www.googleapis.com/auth/calendar']
+          scope: ['https://www.googleapis.com/auth/calendar', "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]
         });
         rtm.webClient.conversations.open({token:slackToken, users: userId})
         .then((res) => {
@@ -260,7 +260,7 @@ rtm.on('message', (event) => {
         const url = oauth2Client.generateAuthUrl({
           access_type: 'offline',
           state: event.user,
-          scope: ['https://www.googleapis.com/auth/calendar']
+          scope: ['https://www.googleapis.com/auth/calendar', "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"]
         });
         rtm.sendMessage(`Hello there!\nPlease click this link so I can assist you!\n${url}`, event.channel)
         .then(() => console.log('User not authenticated, link sent.'))
