@@ -8,9 +8,10 @@ module.exports = (oauth2Client) => {
   router.get("/oauthcallback", (req, res) => {
     oauth2Client.getToken(req.query.code, (err, token) => {
       if (err) return console.error('Error receiving calendar token:', err);
+      console.log(req.query);
       (new User ({
         slackId: req.query.state,
-        googleCalendarAccount: {
+        calendar: {
           token: token
         }
         //additional user info from schema
