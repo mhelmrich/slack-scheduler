@@ -68,8 +68,8 @@ function handleIntent(calendar, intent, conversationId){
 
       console.log(intent.parameters.fields)
       // change time to whenever time
-      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, user: currentUser.slackId, time: intent.parameters.fields.date.stringValue })
-      .catch(err => console.log(err))
+      rtm.webClient.reminders.add({token:process.env.BOT_TOKEN, text: intent.parameters.fields.subject.stringValue, user: currentUser.slackId, time: "In 1 minute" })
+      .catch(err => console.log("Add Catch: " + err))
       rtm.webClient.reminders.list({token:process.env.BOT_TOKEN})
       .then((res) => console.log(res))
       .catch(err => console.log())
@@ -81,6 +81,7 @@ function handleIntent(calendar, intent, conversationId){
       return;
       break;
     case 'meeting:schedule':
+
       break;
     case 'calendar:events':
     //console.log('CALLED')
@@ -165,7 +166,7 @@ function makeCalendarAPICall(token, intent, conversationId) {
             sessionClient.detectIntent(request)
               .then(responses => {
                 const result = responses[0].queryResult;
-                console.log('Detected intent', result.parameters.fields);
+                console.log('Detected intent', JSON.stringify(result.parameters.fields.date));
                 console.log(`  Query: ${result.queryText}`);
                 console.log(`  Response: ${result.fulfillmentText}`);
                 rtm.sendMessage(result.fulfillmentText, conversationId)
