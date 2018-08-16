@@ -97,7 +97,7 @@ function listEvents(result, calendar, channel) {
   });
 }
 
-function scheduleMeeting(result, calendar, channel) {
+function scheduleMeeting(result, calendar, channel, activeUser) {
   let invitees = result.parameters.fields.invitee.listValue.values;
   for (let i = 0; i < invitees.length; i++) invitees[i] = invitees[i].stringValue;
   if (invitees.length === 1 && invitees[0].length > 9) {
@@ -109,12 +109,36 @@ function scheduleMeeting(result, calendar, channel) {
   }
 
   // insert call to api here
-  console.log("Result: " + result + "\n")
-  console.log("Calendar: " + calendar + "\n")
-  console.log("Channel: " + channel + "\n")
-  // insert call to api here
-  let attendees; //= result.parameters.fields.
-  calendar.events.insert({
+
+  /* result.parameters.fields.invittee returns and object containing another object
+     which contains an array of the slack id's of the users.
+  */
+  invitees.forEach((userId) => {
+    User.findOne({slackId: userId})
+    .then((user) => {
+      if(!user) {
+        const url = oauth2Client.generateAuthUrl({
+          access_type: 'offline',
+          state: user,
+          scope: ['https://www.googleapis.com/auth/calendar']
+        });
+        rtm.webClient.conversations.open({token:slackToken, users: userId})
+        .then((res) => {
+          let messageChannel = res.channel.id
+          rtm.webClient.users.profile.get({token:process.env.BOT_TOKEN, user: activeUser})
+          .then((activeUserName) => {
+            rtm.sendMessage(`${activeUserName.profile.real_name} wants to schedule a meeting with you!\nPlease click this link so that I can add it to your calendar!\n${url}`, messageChannel)
+            .then(() => console.log('User not authenticated, link sent.'))
+            .catch((err) => console.log('Error sending authentication link:', err));
+          })
+        })
+        .catch((err) => console.log(err))
+      }
+    })
+  })
+
+  // insert call to api here//= result.parameters.fields.
+  /* calendar.events.insert({
     calendarId: 'primary', // Go to setting on your calendar to get Id
     'resource': {
       'summary': result.parameters.fields.subject.stringValue,
@@ -127,16 +151,16 @@ function scheduleMeeting(result, calendar, channel) {
       'end': {
         'dateTime': result.parameters.fields.date.stringValue,
         'timeZone': 'America/Los_Angeles'
-      }/*,
+      },
       'attendees': [
         {'email': 'lpage@example.com'},
         {'email': 'sbrin@example.com'}
-      ]*/
+      ]
     }
   }, (err, {data}) => {
     if (err) return console.log('The API returned an error: ' + err);
     console.log(data)
-  })
+  }) */
 
   let message = result.fulfillmentText + '\nInvitees:';
   for (let i = 0; i < invitees.length; i++) message += `\n<@${invitees[i]}>`;
@@ -146,7 +170,7 @@ function scheduleMeeting(result, calendar, channel) {
 function getCalendar(user) {
   oauth2Client.setCredentials(user.calendarToken);
   oauth2Client.on('tokens', (tokens) => {
-    if (tokens.refresh_token) user.update({$set: {calendarTokens: tokens}}, () => (true);
+    if (tokens.refresh_token) user.update({$set: {calendarTokens: tokens}}, () => (true));
   });
   return google.calendar({version: "v3", auth: oauth2Client});
 }
@@ -160,7 +184,7 @@ function handleIntent(result, user, channel) {
       listEvents(result, getCalendar(user), channel);
       break;
     case 'meeting:schedule':
-      scheduleMeeting(result, getCalendar(user), channel);
+      scheduleMeeting(result, getCalendar(user), channel, user.slackId);
       break;
   }
 }
@@ -227,8 +251,8 @@ rtm.on('message', (event) => {
             if (result.fulfillmentText[0] === '#') {
               result.fulfillmentText = result.fulfillmentText.slice(1);
               eventEmitter.once(event.channel, () => handleIntent(result, user, event.channel));
-              if (result.intent.displayName !== 'calendar:events') handleButtons(result, event.channel);
-              else eventEmitter.emit(event.channel);
+              //if (result.intent.displayName !== 'calendar:events') handleButtons(result, event.channel);
+              /*else*/ eventEmitter.emit(event.channel);
             } else rtm.sendMessage(result.fulfillmentText, event.channel);
           }).catch(err => console.error('Error detecting intent:', err));
       } else {
