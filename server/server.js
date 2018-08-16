@@ -108,6 +108,34 @@ function scheduleMeeting(result, calendar, channel) {
   }
 
   // insert call to api here
+  console.log("Result: " + result + "\n")
+  console.log("Calendar: " + calendar + "\n")
+  console.log("Channel: " + channel + "\n")
+  // insert call to api here
+  let attendees; //= result.parameters.fields.
+  calendar.events.insert({
+    calendarId: 'primary', // Go to setting on your calendar to get Id
+    'resource': {
+      'summary': result.parameters.fields.subject.stringValue,
+      'location': '800 Howard St., San Francisco, CA 94103',
+      'description': result.parameters.fields.subject.stringValue,
+      'start': {
+        'dateTime': result.parameters.fields.date.stringValue,
+        'timeZone': 'America/Los_Angeles'
+      },
+      'end': {
+        'dateTime': result.parameters.fields.date.stringValue,
+        'timeZone': 'America/Los_Angeles'
+      }/*,
+      'attendees': [
+        {'email': 'lpage@example.com'},
+        {'email': 'sbrin@example.com'}
+      ]*/
+    }
+  }, (err, {data}) => {
+    if (err) return console.log('The API returned an error: ' + err);
+    console.log(data)
+  })
 
   let message = result.fulfillmentText + '\nInvitees:';
   for (let i = 0; i < invitees.length; i++) message += `\n<@${invitees[i]}>`;
