@@ -138,11 +138,18 @@ function handleIntent(result, token, channel) {
   }
 }
 
-function handleButtons(result, channel) {
+function handleButtons(result, channel) { 
+  let text = "Create reminder?"
+  if (result.intent.displayName === "meeting:schedule") {
+    let date = result.parameters.fields.date.listValue.values[0].stringValue.slice(0, 10);
+    let time = result.parameters.fields.time.stringValue.slice(11, 16);
+    text = "OK, schedule this meeting for " + date + " at " + time;
+  }
+
   web.chat.postMessage({
     channel: channel,
     as_user: true,
-    text: "Create task to " + result.parameters.fields.subject.stringValue + " " +  result.queryText + "?",
+    text: text,
     response_url: "https://f857dcaf.ngrok.io/confirmationButton", //THIS CHANGES EVERY TIME NGROK IS RUN!!!!!!!!
     attachments: [
     {
@@ -213,8 +220,9 @@ rtm.on('message', (event) => {
             console.log('--------------');
             if (result.fulfillmentText[0] === '#') {
               result.fulfillmentText = result.fulfillmentText.slice(1);
-              handleButtons(result, event.channel);
-              eventEmitter.on(event.channel, () => handleIntent(result, user.calendar.token, event.channel));
+              eventEmitter.once(event.channel, () => handleIntent(result, user.calendar.token, event.channel));
+              if (result.intent.displayName !== 'calendar:events') handleButtons(result, event.channel);
+	      else eventEmitter.emit(event.channel);
             } else rtm.sendMessage(result.fulfillmentText, event.channel);
           }).catch(err => console.error('Error detecting intent:', err));
       } else {
