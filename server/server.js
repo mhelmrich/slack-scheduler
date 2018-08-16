@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const session = require("express-session");
 const MongoStore = require("connect-mongo")(session);
 const dialogflow = require('dialogflow');
+const events = require('events');
 
 const User = require("./models/user.js");
 const Task = require("./models/task.js");
@@ -32,6 +33,9 @@ const oauth2Client = new google.auth.OAuth2(
 
 // Dialogflow
 const sessionClient = new dialogflow.SessionsClient();
+
+// Event emitter
+const eventEmitter = new events.EventEmitter();
 
 // Middleware
 app.use(bodyParser.json());
@@ -137,13 +141,12 @@ function handleIntent(result, token, channel) {
   }
 }
 
-function handleButtons(conversationId, result)
-{
+function handleButtons(result, channel) {
   web.chat.postMessage({
-    channel: conversationId,
+    channel: channel,
     as_user: true,
     text: "Create task to " + result.parameters.fields.subject.stringValue + " " +  result.queryText + "?",
-    response_url: "https://b5614342.ngrok.io/confirmationButton", //THIS CHANGES EVERY TIME NGROK IS RUN!!!!!!!!
+    response_url: "https://f857dcaf.ngrok.io/confirmationButton", //THIS CHANGES EVERY TIME NGROK IS RUN!!!!!!!!
     attachments: [
     {
       fallback: "You are unable schedule a reminder",
@@ -212,11 +215,10 @@ rtm.on('message', (event) => {
             console.log(`  Response: ${result.fulfillmentText}`);
             console.log('--------------');
             if (result.fulfillmentText[0] === '#') {
-              handleButtons(event.channel, result);//double check event.channel
               result.fulfillmentText = result.fulfillmentText.slice(1);
-              handleIntent(result, user.calendar.token, event.channel);
-            }
-            else rtm.sendMessage(result.fulfillmentText, event.channel);
+              handleButtons(result, event.channel);
+              eventEmitter.on(event.channel, () => handleIntent(result, user.calendar.token, event.channel));
+            } else rtm.sendMessage(result.fulfillmentText, event.channel);
           }).catch(err => console.error('Error detecting intent:', err));
       } else {
         //slack authentication link for google calendar
@@ -237,9 +239,12 @@ rtm.on('message', (event) => {
 //have token, time, date, subject in makeCalendarAPICall
 //save date into global array since it's not in payload
   app.post('/confirmationButton', (req, res) => {
+    let payload = JSON.parse(req.body.payload);
+    console.log('button event:', payload.channel.id);
+    eventEmitter.emit(payload.channel.id);
     console.log("In the post!");
     //call makecalendarapi with arguments from payload
-    console.log(">>>>PAYLOAD>>>>", JSON.parse(req.body.payload));//actions name key corresponds to yes. Only check to see if they confirm or no
+    console.log(">>>>PAYLOAD>>>>", payload);//actions name key corresponds to yes. Only check to see if they confirm or no
  /*   ^^ find actions in payload and as above= req.body.payload.
     makeCalendarAPICall(calendarToken, calendarIntent, calendarConversationId)
 */
