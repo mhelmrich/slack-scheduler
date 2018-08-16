@@ -93,7 +93,18 @@ function listEvents(result, calendar, channel) {
 }
 
 function scheduleMeeting(result, calendar, channel) {
-  rtm.sendMessage('Sorry, this functionality has not been implemented yet.', channel);
+  let invitees = result.parameters.fields.invitee.listValue.values;
+  for (let i = 0; i < invitees.length; i++) invitees[i] = invitees[i].stringValue;
+  if (invitees.length === 1 && invitees[0].length > 9) {
+    ids = [];
+    for (let i = 0; i < invitees[0].length; i++) {
+      if (invitees[0][i] === '@') ids.push(invitees[0].slice(i+1, i+10));
+    }
+    invitees = ids;
+  }
+  let message = result.fulfillmentText + '\nInvitees:';
+  for (let i = 0; i < invitees.length; i++) message += `\n<@${invitees[i]}>`;
+  rtm.sendMessage(message, channel);
 }
 
 function getCalendar(token) {
