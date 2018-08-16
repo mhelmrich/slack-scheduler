@@ -134,6 +134,55 @@ function handleIntent(result, token, channel) {
   }
 }
 
+function handleButtons(conversationId, result)
+{
+  web.chat.postMessage({
+    channel: conversationId,
+    as_user: true,
+    text: "Create task to " + result.parameters.fields.subject.stringValue + " " +  result.queryText + "?",
+    response_url: "https://b5614342.ngrok.io/confirmationButton", //THIS CHANGES EVERY TIME NGROK IS RUN!!!!!!!!
+    attachments: [
+    {
+      fallback: "You are unable schedule a reminder",
+      callback_id: "schedule_reminder",
+      color: "#3AA3E3",
+      attachment_type: "default",
+      actions: [
+      {
+        name: "decision",
+        text: "Yes",
+        type: "button",
+        style: "primary",
+        value: "yes"//,
+ /*                     confirm: {
+                        title: "Are you sure?",
+                        text: "",
+                        ok_text: "Yes",
+                        dismiss_text: "No"
+                      }*/
+      },
+      {
+        name: "decision",
+        text: "No",
+        style: "danger",
+        type: "button",
+        value: "no"//,
+ /*                     confirm: {
+                        title: "Are you sure?",
+                        text: "",
+                        ok_text: "Yes",
+                        dismiss_text: "No"
+                      }*/
+      }]
+    }]
+  })
+  .then((res) => {
+  // `res` contains information about the posted message
+    console.log('Message sent: ', res.ts)
+   })
+   .catch(console.error)
+}
+
 rtm.on('message', (event) => {
   if(event.bot_id !== 'BC8N825N3') {
     User.findOne({slackId: event.user})
@@ -160,6 +209,7 @@ rtm.on('message', (event) => {
             console.log(`  Response: ${result.fulfillmentText}`);
             console.log('--------------');
             if (result.fulfillmentText[0] === '#') {
+              handleButtons(event.channel, result);//double check event.channel
               result.fulfillmentText = result.fulfillmentText.slice(1);
               handleIntent(result, user.calendar.token, event.channel);
             }
@@ -180,5 +230,19 @@ rtm.on('message', (event) => {
   }
 });
 
+
+//have token, time, date, subject in makeCalendarAPICall
+//save date into global array since it's not in payload
+  app.post('/confirmationButton', (req, res) => {
+    console.log("In the post!");
+    //call makecalendarapi with arguments from payload
+    console.log(">>>>PAYLOAD>>>>", JSON.parse(req.body.payload));//actions name key corresponds to yes. Only check to see if they confirm or no
+ /*   ^^ find actions in payload and as above= req.body.payload.
+    makeCalendarAPICall(calendarToken, calendarIntent, calendarConversationId)
+*/
+    res.end();
+  });
+
 const port = process.env.PORT || 1337;
 app.listen(port, () => console.log(`Server listening on port ${port}!`));
+
