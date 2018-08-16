@@ -2,10 +2,7 @@ const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
 const userSchema = new Schema({
-  calendar: {
-    token: {},
-    googlePlusProfile: String
-  },
+  calendarTokens: {},
   defaultSetting: {
     meetingLength: Number//in minutes
   },

@@ -28,7 +28,7 @@ let currentUser = null;
 const oauth2Client = new google.auth.OAuth2(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
-  process.env.REDIRECT_URL
+  `${process.env.SERVER_URL}/oauthcallback`
 );
 
 // Dialogflow
@@ -41,6 +41,7 @@ const eventEmitter = new events.EventEmitter();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: false}));
 app.use('/', routes(oauth2Client));
+app.post('/button', (req, res) => eventEmitter.emit(req.body.payload.channel.id));
 
 rtm.start();
 rtm.on('ready', (event) => console.log("Slack RTM ready!"));
@@ -142,79 +143,60 @@ function scheduleMeeting(result, calendar, channel) {
   rtm.sendMessage(message, channel);
 }
 
-function getCalendar(token) {
-  oauth2Client.setCredentials(token);
+function getCalendar(user) {
+  oauth2Client.setCredentials(user.calendarToken);
   oauth2Client.on('tokens', (tokens) => {
-    //access tokens should be acquired and refreshed automatically on next API call
-    if (tokens.refresh_token) {
-      // store the refresh_token in my database!
-      console.log('Refresh token:', tokens.refresh_token);
-    }
-    console.log('Access token:', tokens.access_token);
+    if (tokens.refresh_token) user.update({$set: {calendarTokens: tokens}}, () => (true);
   });
   return google.calendar({version: "v3", auth: oauth2Client});
 }
 
-function handleIntent(result, token, channel) {
+function handleIntent(result, user, channel) {
   switch (result.intent.displayName) {
     case 'reminder:add':
-      addReminder(result, getCalendar(token), channel);
+      addReminder(result, getCalendar(user), channel);
       break;
     case 'calendar:events':
-      listEvents(result, getCalendar(token), channel);
+      listEvents(result, getCalendar(user), channel);
       break;
     case 'meeting:schedule':
-      scheduleMeeting(result, getCalendar(token), channel);
+      scheduleMeeting(result, getCalendar(user), channel);
       break;
   }
 }
 
 function handleButtons(result, channel) {
+  let text = "Create reminder?"
+  if (result.intent.displayName === "meeting:schedule") {
+    let date = result.parameters.fields.date.listValue.values[0].stringValue.slice(0, 10);
+    let time = result.parameters.fields.time.stringValue.slice(11, 16);
+    text = `Schedule this meeting for ${date} at ${time}?`;
+  }
   web.chat.postMessage({
     channel: channel,
     as_user: true,
-    text: "Create task to " + result.parameters.fields.subject.stringValue + " " +  result.queryText + "?",
-    response_url: "https://f857dcaf.ngrok.io/confirmationButton", //THIS CHANGES EVERY TIME NGROK IS RUN!!!!!!!!
+    text: text,
+    response_url: `${process.env.SERVER_URL}/button`,
     attachments: [
-    {
-      fallback: "You are unable schedule a reminder",
+    { fallback: `Unable to ${text[1].toLowerCase()}${text.slice(1, text.length-1)}.`,
       callback_id: "schedule_reminder",
       color: "#3AA3E3",
       attachment_type: "default",
       actions: [
-      {
-        name: "decision",
+      { name: "decision",
         text: "Yes",
         type: "button",
         style: "primary",
-        value: "yes"//,
- /*                     confirm: {
-                        title: "Are you sure?",
-                        text: "",
-                        ok_text: "Yes",
-                        dismiss_text: "No"
-                      }*/
+        value: "yes"
       },
-      {
-        name: "decision",
+      { name: "decision",
         text: "No",
         style: "danger",
         type: "button",
-        value: "no"//,
- /*                     confirm: {
-                        title: "Are you sure?",
-                        text: "",
-                        ok_text: "Yes",
-                        dismiss_text: "No"
-                      }*/
+        value: "no"
       }]
     }]
-  })
-  .then((res) => {
-  // `res` contains information about the posted message
-    console.log('Message sent: ', res.ts)
-   })
-   .catch(console.error)
+  });
 }
 
 rtm.on('message', (event) => {
@@ -244,8 +226,9 @@ rtm.on('message', (event) => {
             console.log('--------------');
             if (result.fulfillmentText[0] === '#') {
               result.fulfillmentText = result.fulfillmentText.slice(1);
-              handleButtons(result, event.channel);
-              eventEmitter.on(event.channel, () => handleIntent(result, user.calendar.token, event.channel));
+              eventEmitter.once(event.channel, () => handleIntent(result, user, event.channel));
+              if (result.intent.displayName !== 'calendar:events') handleButtons(result, event.channel);
+              else eventEmitter.emit(event.channel);
             } else rtm.sendMessage(result.fulfillmentText, event.channel);
           }).catch(err => console.error('Error detecting intent:', err));
       } else {
@@ -262,22 +245,6 @@ rtm.on('message', (event) => {
     }).catch((err) => console.log('Error looking up user:', err));
   }
 });
-
-
-//have token, time, date, subject in makeCalendarAPICall
-//save date into global array since it's not in payload
-  app.post('/confirmationButton', (req, res) => {
-    let payload = JSON.parse(req.body.payload);
-    console.log('button event:', payload.channel.id);
-    eventEmitter.emit(payload.channel.id);
-    console.log("In the post!");
-    //call makecalendarapi with arguments from payload
-    console.log(">>>>PAYLOAD>>>>", payload);//actions name key corresponds to yes. Only check to see if they confirm or no
- /*   ^^ find actions in payload and as above= req.body.payload.
-    makeCalendarAPICall(calendarToken, calendarIntent, calendarConversationId)
-*/
-    res.end();
-  });
 
 const port = process.env.PORT || 1337;
 app.listen(port, () => console.log(`Server listening on port ${port}!`));

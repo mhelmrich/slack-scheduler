@@ -11,9 +11,7 @@ module.exports = (oauth2Client) => {
       console.log(req.query);
       (new User ({
         slackId: req.query.state,
-        calendar: {
-          token: token
-        }
+        calendarTokens: token,
         //additional user info from schema
       })).save()
       .then(() => (res.send('Congratulations! You have successfully linked your Google Calendar!')))
