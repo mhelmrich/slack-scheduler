@@ -134,6 +134,7 @@ function handleIntent(calendar, intent, conversationId){
 }
 
 function makeCalendarAPICall(token, intent, conversationId) {
+  console.log("CALENDAR CALL INTENT: ", intent);
   const oauth2Client = new google.auth.OAuth2 (
     process.env.CLIENT_ID,
     process.env.CLIENT_SECRET,
@@ -203,7 +204,7 @@ function makeCalendarAPICall(token, intent, conversationId) {
                   channel: conversationId,
                   as_user: true,
                   text: "Create task to " + result.parameters.fields.subject.stringValue + " " +  result.queryText + "?",
-                  response_url: "https://4992576b.ngrok.io/confirmationButton", //, webhook
+                  response_url: "https://b5614342.ngrok.io/confirmationButton", //THIS CHANGES EVERY TIME NGROK IS RUN!!!!!!!!
                   attachments: [
                   {
                     fallback: "You are unable schedule a reminder",
@@ -283,9 +284,16 @@ function makeCalendarAPICall(token, intent, conversationId) {
     }
   });
 
+
+//have token, time, date, subject in makeCalendarAPICall
+//save date into global array since it's not in payload
   app.post('/confirmationButton', (req, res) => {
     console.log("In the post!");
-    console.log(">>>>PAYLOAD>>>>", JSON.parse(req.body.payload));
+    //call makecalendarapi with arguments from payload
+    console.log(">>>>PAYLOAD>>>>", JSON.parse(req.body.payload));//actions name key corresponds to yes. Only check to see if they confirm or no
+ /*   ^^ find actions in payload and as above= req.body.payload.
+    makeCalendarAPICall(calendarToken, calendarIntent, calendarConversationId)
+*/
     res.end();
   });
 
