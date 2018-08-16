@@ -102,6 +102,9 @@ function scheduleMeeting(result, calendar, channel) {
     }
     invitees = ids;
   }
+
+  // insert call to api here
+
   let message = result.fulfillmentText + '\nInvitees:';
   for (let i = 0; i < invitees.length; i++) message += `\n<@${invitees[i]}>`;
   rtm.sendMessage(message, channel);
